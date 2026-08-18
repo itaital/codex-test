@@ -2,6 +2,7 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// KSP LEGO outlet monitor.
 const URL = 'https://ksp.co.il/web/cat/42..1215..3605';
 const OUT = 'monitoring/ksp-lego-latest.json';
 const forceRun = process.env.FORCE_RUN === 'true';
