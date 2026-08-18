@@ -1,0 +1,87 @@
+name: KSP API Probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ksp-api-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe KSP category API directly
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error, datetime, os
+
+          url = 'https://ksp.co.il/m_action/api/category/42..1215..3605?page=1'
+          headers = {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+              'Accept': 'application/json',
+              'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Referer': 'https://ksp.co.il/web/',
+              'Origin': 'https://ksp.co.il',
+          }
+          out = {
+              'checkedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'url': url,
+          }
+          try:
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  body = r.read().decode('utf-8', 'replace')
+                  out['httpStatus'] = r.status
+                  out['contentType'] = r.headers.get('content-type')
+                  try:
+                      data = json.loads(body)
+                      out['jsonOk'] = True
+                      result = data.get('result') if isinstance(data, dict) else None
+                      items = result.get('items', []) if isinstance(result, dict) else []
+                      out['productsTotal'] = result.get('products_total') if isinstance(result, dict) else None
+                      out['next'] = result.get('next') if isinstance(result, dict) else None
+                      out['itemCount'] = len(items) if isinstance(items, list) else None
+                      slim = []
+                      if isinstance(items, list):
+                          for x in items:
+                              if not isinstance(x, dict):
+                                  continue
+                              slim.append({
+                                  'name': x.get('name'),
+                                  'uin': x.get('uin'),
+                                  'price': x.get('price'),
+                                  'min_price': x.get('min_price'),
+                                  'labels': x.get('labels'),
+                              })
+                      out['items'] = slim
+                      out['contains75409'] = any('75409' in str(v) for item in slim for v in item.values())
+                  except Exception as e:
+                      out['jsonOk'] = False
+                      out['parseError'] = repr(e)
+                      out['bodyPrefix'] = body[:2000]
+          except urllib.error.HTTPError as e:
+              body = e.read().decode('utf-8', 'replace')
+              out['httpStatus'] = e.code
+              out['error'] = str(e)
+              out['bodyPrefix'] = body[:2000]
+          except Exception as e:
+              out['error'] = repr(e)
+
+          os.makedirs('monitoring', exist_ok=True)
+          with open('monitoring/ksp-api-probe.json', 'w', encoding='utf-8') as f:
+              json.dump(out, f, ensure_ascii=False, indent=2)
+              f.write('\n')
+          print(json.dumps(out, ensure_ascii=False, indent=2))
+          PY
+      - name: Commit probe result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add monitoring/ksp-api-probe.json
+          git commit -m "Record KSP API probe" || exit 0
+          git push
