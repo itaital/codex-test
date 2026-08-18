@@ -288,12 +288,12 @@ try {
       diagnostics: { networkMatches: networkProducts.length, domMatches: domProducts.length }
     });
   } else {
-    // Critical safety rule: absence of matches is NOT enough to claim the outlet is empty.
-    // Only mark empty when the page itself clearly says there are no products/results.
     const explicitEmpty = /אין\s+(?:כרגע\s+)?מוצרים|לא\s+נמצאו\s+מוצרים|לא\s+נמצאו\s+תוצאות|0\s+מוצרים|NO_PRODUCTS|NO_RESULTS/i.test(pageInfo.body);
     if (explicitEmpty) {
       writeResult({
         status: 'empty',
+        emptyVerified: true,
+        emptyEvidence: 'Explicit empty-category message was present in the rendered KSP page',
         products: [],
         diagnostics: { networkMatches: networkProducts.length, domMatches: domProducts.length }
       });
