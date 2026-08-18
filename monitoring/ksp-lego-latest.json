@@ -1,11 +1,11 @@
 {
   "source": "https://ksp.co.il/web/cat/42..1215..3605",
-  "checkedAt": "2026-08-19T01:21:03+03:00",
+  "checkedAt": "2026-08-19T01:22:01+03:00",
   "status": "error",
   "reason": "KSP loaded, but no products were parsed and there was no explicit empty-category message. Refusing to report an empty store.",
   "diagnostics": {
     "title": "KSP Forbidden 403",
-    "htmlLength": 20556,
+    "htmlLength": 20555,
     "networkMatches": 0,
     "domMatches": 0,
     "categorySignals": []
